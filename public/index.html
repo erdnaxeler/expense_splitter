@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expense Splitter</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root { --indigo:#6366f1; --indigo-d:#4f46e5; --green:#047857; --red:#b91c1c; }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#f4f5f7; color:#1a1a2e; padding:16px; line-height:1.4; -webkit-text-size-adjust:100%; }
+  .container { max-width:1000px; margin:0 auto; }
+  h1 { font-size:22px; margin-bottom:2px; }
+  .sub { color:#666; font-size:13.5px; margin-bottom:14px; }
+
+  .topbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .status { font-size:12.5px; color:#888; margin-left:auto; }
+  .status b { color:var(--green); }
+
+  .card { background:#fff; border-radius:10px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); margin-bottom:16px; }
+  h2 { font-size:16px; margin-bottom:12px; color:#2d2d44; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  h2 .tag { font-size:12px; font-weight:500; color:#888; }
+
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th { text-align:left; padding:7px 8px; border-bottom:2px solid #eee; font-size:10.5px; text-transform:uppercase; letter-spacing:.4px; color:#999; white-space:nowrap; }
+  td { padding:5px 8px; border-bottom:1px solid #f0f0f0; vertical-align:middle; }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  tr:last-child td { border-bottom:none; }
+
+  .cellinput, .cellselect { width:100%; border:1px solid transparent; background:transparent; padding:6px; border-radius:5px; font-size:16px; font-family:inherit; color:#1a1a2e; }
+  .cellinput:hover,.cellselect:hover { border-color:#e4e4ec; }
+  .cellinput:focus,.cellselect:focus { outline:none; border-color:var(--indigo); background:#fff; }
+  .cellinput.amt { text-align:right; font-variant-numeric:tabular-nums; }
+  .w { width:70px; }
+  .col-date { width:120px; } .col-amt { width:100px; } .col-by { width:150px; }
+
+  .btn { background:var(--indigo); color:#fff; border:none; padding:8px 13px; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; }
+  .btn:hover { background:var(--indigo-d); }
+  .btn.sm { padding:6px 10px; font-size:12px; }
+  .btn.del { background:#f3f4f6; color:var(--red); padding:6px 9px; }
+  .btn.del:hover { background:#fee2e2; }
+  .btn.ghost { background:#fff; color:#555; border:1px solid #d8d8e0; }
+  .btn.ghost:hover { background:#f3f4f6; }
+  .btn.green { background:var(--green); } .btn.green:hover { background:#036847; }
+
+  .addrow td { background:#fbfbfd; }
+  .addrow .cellinput,.addrow .cellselect { border-color:#e4e4ec; background:#fff; }
+
+  .grouptotal td { font-weight:700; background:#fafafa; border-top:2px solid #eee; }
+  .group-card { border:1px solid #ececf0; }
+  .members { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:10px; }
+  .member-chip { display:inline-flex; align-items:center; gap:4px; background:#eef2ff; border:1px solid #dbe0ff; border-radius:14px; padding:3px 6px 3px 10px; font-size:12.5px; font-weight:600; color:#3730a3; }
+  .member-chip input { width:38px; border:1px solid #c7cbf5; border-radius:5px; padding:2px 4px; font-size:13px; text-align:center; background:#fff; }
+  .member-chip .x { cursor:pointer; color:#7c83c9; font-weight:700; padding:0 3px; }
+  .member-chip .x:hover { color:var(--red); }
+  .addmember { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+  .addmember select, .addmember input { padding:6px 8px; border:1px solid #d8d8e0; border-radius:6px; font-size:14px; }
+  .addmember input { width:64px; text-align:center; }
+  .subhd { font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:#999; font-weight:700; margin:4px 0 6px; }
+
+  .settle-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 14px; border-radius:8px; margin-bottom:8px; font-size:15px; background:#f8f8fc; }
+  .settle-row .from { color:var(--red); font-weight:600; } .settle-row .to { color:var(--green); font-weight:600; }
+  .settle-row .amt { background:#fff; padding:6px 12px; border-radius:6px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .allset { color:var(--green); font-weight:600; }
+  .muted { color:#999; }
+  .warn { background:#fff3cd; border:1px solid #ffe08a; color:#7a5b00; padding:8px 12px; border-radius:8px; font-size:13px; margin-bottom:10px; }
+
+  .bal td.pos { color:var(--green); font-weight:600; } .bal td.neg { color:var(--red); font-weight:600; } .bal td.zero { color:#999; }
+  details { margin-top:8px; } summary { cursor:pointer; font-size:13px; color:var(--indigo); font-weight:600; }
+  .mathblock { font-size:12.5px; color:#555; padding:10px 0 4px; font-variant-numeric:tabular-nums; }
+  .mathblock .line { padding:3px 0; } .mathblock .hd { font-weight:700; color:#333; margin-top:8px; }
+  .empty { color:#999; font-size:14px; padding:8px 0; }
+  .table-wrap { width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .dl-txt {}
+
+  @media (max-width:640px) {
+    body { padding:8px; } h1 { font-size:19px; } .card { padding:11px; }
+    h2 { font-size:15px; } .status { margin-left:0; flex-basis:100%; }
+    .table-wrap { overflow-x:visible; }
+    table, tbody, tfoot { display:block; width:100%; } thead { display:none; }
+    tr.datarow, tr.addrow, tr.payrow { display:flex; flex-wrap:wrap; align-items:center; gap:5px; border:1px solid #ececf0; border-radius:8px; padding:6px; margin-bottom:6px; background:#fff; }
+    tr.datarow td, tr.addrow td, tr.payrow td { display:block; border:none; padding:0; margin:0; text-align:left !important; }
+    tr.datarow td::before, tr.addrow td::before, tr.payrow td::before { content:""; display:none; }
+    tr.datarow td:empty, tr.addrow td:empty, tr.payrow td:empty { display:none; }
+    .cellinput,.cellselect { padding:5px 6px; line-height:1.2; border-color:#e4e4ec; background:#fff; }
+    .datarow td[data-l="desc"], .addrow td[data-l="desc"] { order:1; flex:1 1 100%; }
+    .datarow td[data-l="date"], .addrow td[data-l="date"] { order:2; flex:1 1 30%; min-width:84px; }
+    .datarow td[data-l="amt"],  .addrow td[data-l="amt"]  { order:3; flex:1 1 22%; min-width:66px; }
+    .datarow td[data-l="by"],   .addrow td[data-l="by"]   { order:4; flex:1 1 34%; min-width:92px; }
+    .datarow td[data-l="ps"] { order:5; flex:0 0 auto; font-size:11px; color:#aaa; }
+    .datarow td[data-l="del"] { order:6; flex:0 0 auto; margin-left:auto; }
+    .addrow td[data-l="addbtn"] { order:9; flex:1 1 100%; } .addrow td[data-l="addbtn"] .btn { width:100%; }
+    .payrow td[data-l="from"] { flex:1 1 30%; min-width:88px; } .payrow td[data-l="to"] { flex:1 1 30%; min-width:88px; }
+    .payrow td[data-l="amt"] { flex:1 1 22%; min-width:66px; } .payrow td[data-l="del"] { flex:0 0 auto; margin-left:auto; }
+    .dl-txt { display:none; } .btn.del { padding:6px 9px; }
+    tr.grouptotal { display:flex; flex-wrap:wrap; gap:8px; align-items:baseline; border:none; border-top:2px solid #eee; padding:6px 2px 0; font-size:12.5px; }
+    tr.grouptotal td { display:inline; border:none; padding:0; } tr.grouptotal td::before { content:""; display:none; } tr.grouptotal td:empty { display:none; }
+    tr.balrow { display:grid; grid-template-columns:1fr 1fr; gap:1px 12px; border:1px solid #ececf0; border-radius:8px; padding:8px 10px; margin-bottom:8px; }
+    tr.balrow td { display:flex; justify-content:space-between; gap:8px; border:none; padding:2px 0; text-align:left !important; font-size:13px; }
+    tr.balrow td::before { content:attr(data-l); color:#999; font-weight:600; font-size:11px; align-self:center; }
+    tr.balrow td[data-l="Person"] { grid-column:1/-1; font-size:15px; padding-bottom:4px; } tr.balrow td[data-l="Person"]::before { content:""; }
+    tr.balrow td[data-l="Status"] { grid-column:1/-1; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>💶 Expense Splitter</h1>
+  <div class="sub">Add people, put them into groups with weights, log expenses and payments — it works out who owes whom. Prices in euros.</div>
+
+  <noscript><div class="warn"><b>Open this in a web browser.</b> This app needs JavaScript.</div></noscript>
+
+  <div class="topbar">
+    <button class="btn green" onclick="copyLink()">🔗 Copy share link</button>
+    <button class="btn ghost" onclick="resetAll()">Clear everything</button>
+    <span class="status" id="status"></span>
+  </div>
+
+  <div class="card">
+    <h2>People</h2>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Name</th><th></th></tr></thead>
+      <tbody id="peopleBody"></tbody>
+      <tfoot>
+        <tr class="addrow">
+          <td data-l="desc"><input class="cellinput" id="newPerson" placeholder="Add a name (e.g. Sam, or 'Alex & Verity')" onkeydown="if(event.key==='Enter')addPerson()"></td>
+          <td data-l="addbtn"><button class="btn sm" onclick="addPerson()">Add person</button></td>
+        </tr>
+      </tfoot>
+    </table>
+    </div>
+  </div>
+
+  <div id="groups"></div>
+  <div style="margin:-4px 0 16px;"><button class="btn" onclick="addGroup()">+ Add group</button></div>
+
+  <div class="card">
+    <h2>Payments already made <span class="tag">subtracted from what people owe</span></h2>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>From</th><th>To</th><th class="num">Amount</th><th></th></tr></thead>
+      <tbody id="paymentsBody"></tbody>
+      <tfoot>
+        <tr class="addrow">
+          <td data-l="from"><select class="cellselect" id="payFrom"></select></td>
+          <td data-l="to"><select class="cellselect" id="payTo"></select></td>
+          <td class="num" data-l="amt"><input class="cellinput amt" type="number" id="payAmt" step="0.01" min="0" placeholder="0.00"></td>
+          <td data-l="addbtn"><button class="btn sm" onclick="addPayment()">Add</button></td>
+        </tr>
+      </tfoot>
+    </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Who owes whom <span class="tag">after all expenses &amp; payments</span></h2>
+    <div id="issues"></div>
+    <div id="settlements"></div>
+  </div>
+
+  <div class="card">
+    <h2>Balance per person</h2>
+    <div class="table-wrap">
+    <table class="bal">
+      <thead><tr><th>Person</th><th class="num">Paid in</th><th class="num">Share owed</th><th class="num">Payments</th><th class="num">Net</th><th>Status</th></tr></thead>
+      <tbody id="balBody"></tbody>
+    </table>
+    </div>
+    <details><summary>Show full calculation</summary><div class="mathblock" id="mathblock"></div></details>
+  </div>
+</div>
+
+<script>
+const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const uid = () => Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-3);
+const eur = n => '€' + (Math.round(n*100)/100).toFixed(2);
+const LS_KEY = 'expenseSplitter.selfhost.v1';
+
+let state = { people: [], groups: [], payments: [] };
+let apiAvailable = false;
+let localRev = 0;
+
+/* ---------- lookups ---------- */
+const personById = id => state.people.find(p => p.id === id);
+const personName = id => { const p = personById(id); return p ? p.name : '(unknown)'; };
+const groupById = id => state.groups.find(g => g.id === id);
+const groupShares = g => (g.members||[]).reduce((s,m)=>s + (Number(m.weight)||0), 0);
+function personOptions(selectedId, list) {
+  list = list || state.people;
+  return '<option value="">—</option>' + list.map(p =>
+    `<option value="${esc(p.id)}"${p.id===selectedId?' selected':''}>${esc(p.name)}</option>`).join('');
+}
+
+/* ---------- compute ---------- */
+function computeBalances() {
+  const paid={}, owed={}, pay={};
+  state.people.forEach(p => { paid[p.id]=0; owed[p.id]=0; pay[p.id]=0; });
+  const issues = [];
+  state.groups.forEach(g => {
+    const shares = groupShares(g);
+    (g.expenses||[]).forEach(x => {
+      const payerOk = x.by && paid.hasOwnProperty(x.by);
+      if (shares <= 0) { if (x.amount>0) issues.push(`"${x.desc||'expense'}" in ${g.name||'a group'} has no members with weight — skipped.`); return; }
+      if (!payerOk)   { if (x.amount>0) issues.push(`"${x.desc||'expense'}" in ${g.name||'a group'} has no valid payer — skipped.`); return; }
+      paid[x.by] += Number(x.amount)||0;
+      const perShare = (Number(x.amount)||0) / shares;
+      (g.members||[]).forEach(m => { if (owed.hasOwnProperty(m.personId)) owed[m.personId] += perShare * (Number(m.weight)||0); });
+    });
+  });
+  (state.payments||[]).forEach(p => {
+    if (pay.hasOwnProperty(p.from)) pay[p.from] += Number(p.amount)||0;
+    if (pay.hasOwnProperty(p.to))   pay[p.to]   -= Number(p.amount)||0;
+  });
+  const net={};
+  state.people.forEach(p => { net[p.id] = paid[p.id] - owed[p.id] + pay[p.id]; });
+  return { paid, owed, pay, net, issues };
+}
+
+function settle(net) {
+  const D = state.people.map(p=>[p.id,net[p.id]]).filter(([,v])=>v<-0.005).sort((a,b)=>a[1]-b[1]).map(x=>[...x]);
+  const C = state.people.map(p=>[p.id,net[p.id]]).filter(([,v])=>v> 0.005).sort((a,b)=>b[1]-a[1]).map(x=>[...x]);
+  const out=[]; let i=0,j=0;
+  while (i<D.length && j<C.length) {
+    const amt = Math.min(-D[i][1], C[j][1]);
+    if (amt>0.005) out.push({ from:D[i][0], to:C[j][0], amount:amt });
+    D[i][1]+=amt; C[j][1]-=amt;
+    if (Math.abs(D[i][1])<0.005) i++;
+    if (Math.abs(C[j][1])<0.005) j++;
+  }
+  return out;
+}
+
+/* ---------- render ---------- */
+function render() {
+  renderStatus();
+  renderPeople();
+  renderGroups();
+  renderPayments();
+  const b = computeBalances();
+  renderSettlements(b);
+  renderBalances(b);
+  renderMath(b);
+}
+
+function renderStatus(msg) {
+  const el = document.getElementById('status');
+  if (msg) { el.innerHTML = msg; return; }
+  el.innerHTML = apiAvailable ? 'Saved &amp; shared live at this link.' : 'Saved on this device (open via the server to share).';
+}
+
+function renderPeople() {
+  const body = document.getElementById('peopleBody');
+  if (!state.people.length) { body.innerHTML = '<tr><td colspan="2" class="empty">No people yet — add names below.</td></tr>'; return; }
+  body.innerHTML = state.people.map(p => `
+    <tr class="datarow">
+      <td data-l="desc"><input class="cellinput" value="${esc(p.name)}" onchange="editPerson('${p.id}',this)"></td>
+      <td data-l="del"><button class="btn del sm" onclick="deletePerson('${p.id}')">✕<span class="dl-txt"> Delete</span></button></td>
+    </tr>`).join('');
+}
+
+function renderGroups() {
+  const host = document.getElementById('groups');
+  if (!state.groups.length) { host.innerHTML = '<div class="card"><div class="empty">No groups yet. Add a group, then add members and expenses to it.</div></div>'; return; }
+  host.innerHTML = state.groups.map(g => {
+    const shares = groupShares(g);
+    const memberChips = (g.members||[]).map(m => `
+      <span class="member-chip">${esc(personName(m.personId))}
+        <input type="number" min="0" step="1" value="${m.weight}" title="weight" onchange="editWeight('${g.id}','${m.personId}',this)">
+        <span class="x" title="remove" onclick="removeMember('${g.id}','${m.personId}')">✕</span>
+      </span>`).join('');
+    const nonMembers = state.people.filter(p => !(g.members||[]).some(m => m.personId === p.id));
+    const addMemberSel = nonMembers.length
+      ? `<select id="am_${g.id}">${nonMembers.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select>
+         <input type="number" id="aw_${g.id}" min="0" step="1" value="1" title="weight">
+         <button class="btn sm" onclick="addMember('${g.id}')">Add member</button>`
+      : `<span class="muted">Everyone is already a member${state.people.length?'':' — add people first'}.</span>`;
+
+    const memberOpts = (g.members||[]).map(m => personById(m.personId)).filter(Boolean);
+    const payerList = memberOpts.length ? memberOpts : state.people;
+
+    const rows = (g.expenses||[]).map(x => `
+      <tr class="datarow">
+        <td class="col-date" data-l="date"><input class="cellinput" value="${esc(x.date)}" onchange="editExpense('${g.id}','${x.id}','date',this)"></td>
+        <td data-l="desc"><input class="cellinput" value="${esc(x.desc)}" onchange="editExpense('${g.id}','${x.id}','desc',this)"></td>
+        <td class="col-amt num" data-l="amt"><input class="cellinput amt" type="number" step="0.01" min="0" value="${x.amount}" onchange="editExpense('${g.id}','${x.id}','amount',this)"></td>
+        <td class="col-by" data-l="by"><select class="cellselect" onchange="editExpense('${g.id}','${x.id}','by',this)">${personOptions(x.by, payerList)}</select></td>
+        <td class="num" data-l="ps">${shares>0?eur((Number(x.amount)||0)/shares):'—'}</td>
+        <td data-l="del"><button class="btn del sm" onclick="deleteExpense('${g.id}','${x.id}')">✕<span class="dl-txt"> Delete</span></button></td>
+      </tr>`).join('');
+
+    const total = (g.expenses||[]).reduce((s,x)=>s+(Number(x.amount)||0),0);
+
+    return `
+      <div class="card group-card">
+        <h2><input class="cellinput" style="max-width:280px;font-weight:700;font-size:16px" value="${esc(g.name)}" onchange="editGroupName('${g.id}',this)">
+            <span class="tag">÷ ${shares} shares</span>
+            <button class="btn del sm" style="margin-left:auto" onclick="deleteGroup('${g.id}')">Delete group</button></h2>
+        <div class="subhd">Members &amp; weights</div>
+        <div class="members">${memberChips || '<span class="muted">No members yet.</span>'}</div>
+        <div class="addmember">${addMemberSel}</div>
+        <div class="subhd">Expenses</div>
+        <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Description</th><th class="num">Amount</th><th>Paid by</th><th class="num">Per share</th><th></th></tr></thead>
+          <tbody>
+            ${rows || ''}
+            <tr class="addrow">
+              <td class="col-date" data-l="date"><input class="cellinput" id="ed_${g.id}" placeholder="Date"></td>
+              <td data-l="desc"><input class="cellinput" id="ex_${g.id}" placeholder="Description"></td>
+              <td class="col-amt num" data-l="amt"><input class="cellinput amt" type="number" id="ea_${g.id}" step="0.01" min="0" placeholder="0.00"></td>
+              <td class="col-by" data-l="by"><select class="cellselect" id="eb_${g.id}">${personOptions('', payerList)}</select></td>
+              <td data-l="ps"></td>
+              <td data-l="addbtn"><button class="btn sm" onclick="addExpense('${g.id}')">Add expense</button></td>
+            </tr>
+          </tbody>
+          <tfoot><tr class="grouptotal"><td data-l=""></td><td>Group total</td><td class="num">${eur(total)}</td><td colspan="3">${shares>0?eur(total/shares)+' per share':''}</td></tr></tfoot>
+        </table>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderPayments() {
+  const body = document.getElementById('paymentsBody');
+  body.innerHTML = (state.payments||[]).map(p => `
+    <tr class="payrow">
+      <td data-l="from"><select class="cellselect" onchange="editPayment('${p.id}','from',this)">${personOptions(p.from)}</select></td>
+      <td data-l="to"><select class="cellselect" onchange="editPayment('${p.id}','to',this)">${personOptions(p.to)}</select></td>
+      <td class="num" data-l="amt"><input class="cellinput amt" type="number" step="0.01" min="0" value="${p.amount}" onchange="editPayment('${p.id}','amount',this)"></td>
+      <td data-l="del"><button class="btn del sm" onclick="deletePayment('${p.id}')">✕<span class="dl-txt"> Delete</span></button></td>
+    </tr>`).join('') || '';
+  document.getElementById('payFrom').innerHTML = personOptions('');
+  document.getElementById('payTo').innerHTML = personOptions('');
+}
+
+function renderSettlements(b) {
+  const iss = document.getElementById('issues');
+  iss.innerHTML = b.issues.length ? `<div class="warn">${b.issues.map(esc).join('<br>')}</div>` : '';
+  const div = document.getElementById('settlements');
+  if (!state.people.length) { div.innerHTML = '<div class="empty">Add people to get started.</div>'; return; }
+  const s = settle(b.net);
+  if (!s.length) { div.innerHTML = '<div class="allset">✓ Everyone is settled up.</div>'; return; }
+  div.innerHTML = s.map(x => `
+    <div class="settle-row">
+      <div><span class="from">${esc(personName(x.from))}</span> owes <span class="to">${esc(personName(x.to))}</span></div>
+      <div class="amt">${eur(x.amount)}</div>
+    </div>`).join('');
+}
+
+function renderBalances(b) {
+  const body = document.getElementById('balBody');
+  if (!state.people.length) { body.innerHTML = '<tr><td colspan="6" class="empty">—</td></tr>'; return; }
+  body.innerHTML = state.people.map(p => {
+    const net = b.net[p.id];
+    const cls = net>0.005?'pos':net<-0.005?'neg':'zero';
+    const status = net>0.005?'is owed':net<-0.005?'owes':'settled';
+    return `<tr class="balrow">
+      <td data-l="Person"><strong>${esc(p.name)}</strong></td>
+      <td class="num" data-l="Paid in">${eur(b.paid[p.id])}</td>
+      <td class="num" data-l="Share owed">${eur(b.owed[p.id])}</td>
+      <td class="num" data-l="Payments">${b.pay[p.id]>=0?'+':'−'}${eur(Math.abs(b.pay[p.id]))}</td>
+      <td class="num ${cls}" data-l="Net">${eur(Math.abs(net))}</td>
+      <td class="${cls}" data-l="Status">${status}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderMath(b) {
+  const mb = document.getElementById('mathblock');
+  if (!state.people.length) { mb.innerHTML = '<div class="muted">Nothing to calculate yet.</div>'; return; }
+  let html = '';
+  state.groups.forEach(g => {
+    const shares = groupShares(g);
+    const total = (g.expenses||[]).reduce((s,x)=>s+(Number(x.amount)||0),0);
+    const mem = (g.members||[]).map(m=>`${personName(m.personId)}×${m.weight}`).join(', ') || 'no members';
+    html += `<div class="hd">${esc(g.name)} (÷ ${shares} shares: ${esc(mem)})</div>`;
+    html += `<div class="line">Total ${eur(total)}${shares>0?` → ${eur(total/shares)} per share`:''}</div>`;
+  });
+  html += `<div class="hd">Net = money fronted − share owed ± payments</div>`;
+  state.people.forEach(p => {
+    const net = b.net[p.id];
+    html += `<div class="line"><strong>${esc(p.name)}</strong>: ${eur(b.paid[p.id])} paid − ${eur(b.owed[p.id])} owed ${b.pay[p.id]>=0?'+':'−'} ${eur(Math.abs(b.pay[p.id]))} = <strong>${net>=0?'+':'−'}${eur(Math.abs(net))}</strong> (${net>0.005?'is owed':net<-0.005?'owes':'settled'})</div>`;
+  });
+  mb.innerHTML = html;
+}
+
+/* ---------- mutations ---------- */
+function commit() { saveState(); render(); }
+
+function addPerson() {
+  const el = document.getElementById('newPerson');
+  const name = el.value.trim();
+  if (!name) return;
+  state.people.push({ id: uid(), name });
+  el.value = '';
+  commit();
+  document.getElementById('newPerson').focus();
+}
+function editPerson(id, el) { const p = personById(id); if (p) { p.name = el.value.trim() || p.name; } commit(); }
+function deletePerson(id) {
+  if (!confirm('Delete this person? They will be removed from all groups, expenses they paid, and payments.')) return;
+  state.people = state.people.filter(p => p.id !== id);
+  state.groups.forEach(g => {
+    g.members = (g.members||[]).filter(m => m.personId !== id);
+    (g.expenses||[]).forEach(x => { if (x.by === id) x.by = ''; });
+  });
+  state.payments = (state.payments||[]).filter(p => p.from !== id && p.to !== id);
+  commit();
+}
+
+function addGroup() {
+  const n = state.groups.length + 1;
+  state.groups.push({ id: uid(), name: 'Group ' + n, members: [], expenses: [] });
+  commit();
+}
+function editGroupName(id, el) { const g = groupById(id); if (g) g.name = el.value.trim() || g.name; commit(); }
+function deleteGroup(id) { if (!confirm('Delete this whole group and its expenses?')) return; state.groups = state.groups.filter(g => g.id !== id); commit(); }
+
+function addMember(gid) {
+  const g = groupById(gid); if (!g) return;
+  const pid = document.getElementById('am_'+gid).value;
+  const w = parseFloat(document.getElementById('aw_'+gid).value);
+  if (!pid) return;
+  if ((g.members||[]).some(m => m.personId === pid)) return;
+  g.members = g.members || [];
+  g.members.push({ personId: pid, weight: (w>0? w : 1) });
+  commit();
+}
+function editWeight(gid, pid, el) {
+  const g = groupById(gid); if (!g) return;
+  const m = (g.members||[]).find(m => m.personId === pid); if (!m) return;
+  const w = parseFloat(el.value);
+  if (!(w >= 0)) { render(); return; }
+  m.weight = w;
+  commit();
+}
+function removeMember(gid, pid) {
+  const g = groupById(gid); if (!g) return;
+  g.members = (g.members||[]).filter(m => m.personId !== pid);
+  commit();
+}
+
+function addExpense(gid) {
+  const g = groupById(gid); if (!g) return;
+  const date = document.getElementById('ed_'+gid).value.trim();
+  const desc = document.getElementById('ex_'+gid).value.trim();
+  const amount = parseFloat(document.getElementById('ea_'+gid).value);
+  const by = document.getElementById('eb_'+gid).value;
+  if (!desc || !(amount>0)) { alert('Enter a description and a positive amount.'); return; }
+  g.expenses = g.expenses || [];
+  g.expenses.push({ id: uid(), date: date||'—', desc, amount, by });
+  commit();
+}
+function editExpense(gid, id, field, el) {
+  const g = groupById(gid); if (!g) return;
+  const x = (g.expenses||[]).find(e => e.id === id); if (!x) return;
+  if (field==='amount') { const v = parseFloat(el.value); if (!(v>0)) { render(); return; } x.amount = v; }
+  else if (field==='date') x.date = el.value.trim() || '—';
+  else if (field==='desc') x.desc = el.value.trim() || x.desc;
+  else if (field==='by') x.by = el.value;
+  commit();
+}
+function deleteExpense(gid, id) { const g = groupById(gid); if (!g) return; g.expenses = (g.expenses||[]).filter(e => e.id !== id); commit(); }
+
+function addPayment() {
+  const from = document.getElementById('payFrom').value;
+  const to = document.getElementById('payTo').value;
+  const amount = parseFloat(document.getElementById('payAmt').value);
+  if (!from || !to || from===to || !(amount>0)) { alert('Pick two different people and a positive amount.'); return; }
+  state.payments = state.payments || [];
+  state.payments.push({ id: uid(), from, to, amount });
+  document.getElementById('payAmt').value = '';
+  commit();
+}
+function editPayment(id, field, el) {
+  const p = (state.payments||[]).find(x => x.id === id); if (!p) return;
+  if (field==='amount') { const v = parseFloat(el.value); if (!(v>0)) { render(); return; } p.amount = v; }
+  else if (field==='from') { if (el.value===p.to) { alert('From and To must differ.'); render(); return; } p.from = el.value; }
+  else if (field==='to') { if (el.value===p.from) { alert('From and To must differ.'); render(); return; } p.to = el.value; }
+  commit();
+}
+function deletePayment(id) { state.payments = (state.payments||[]).filter(p => p.id !== id); commit(); }
+
+function resetAll() {
+  if (!confirm('Clear ALL people, groups, expenses and payments? This cannot be undone.')) return;
+  state = { people: [], groups: [], payments: [] };
+  commit();
+}
+
+/* ---------- share link ---------- */
+function copyLink() {
+  const url = location.href;
+  const done = () => renderStatus('Link copied — send it to anyone.');
+  if (navigator.clipboard) navigator.clipboard.writeText(url).then(done).catch(()=>prompt('Copy this link:', url));
+  else prompt('Copy this link:', url);
+  setTimeout(renderStatus, 2500);
+}
+
+/* ---------- persistence: shared backend, with local fallback ---------- */
+function saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e){} }
+function loadLocal() { try { const s = JSON.parse(localStorage.getItem(LS_KEY)); if (s && Array.isArray(s.people)) return s; } catch(e){} return null; }
+
+let saveTimer=null, saving=false, pendingSave=false;
+function saveState() {
+  saveLocal();
+  if (!apiAvailable) { renderStatus(); return; }
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(doSave, 350);
+}
+async function doSave() {
+  if (saving) { pendingSave = true; return; }
+  saving = true; renderStatus('Saving…');
+  try {
+    const r = await fetch('/api/state', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(state) });
+    if (!r.ok) throw 0;
+    const j = await r.json();
+    localRev = j.rev || localRev;
+    renderStatus();
+  } catch(e) {
+    apiAvailable = false; renderStatus('Offline — saved on this device.');
+  } finally {
+    saving = false;
+    if (pendingSave) { pendingSave = false; doSave(); }
+  }
+}
+
+function applyServer(s) { state = { people:s.people||[], groups:s.groups||[], payments:s.payments||[] }; localRev = s.rev||0; }
+
+function isEditing() { const a = document.activeElement; return a && ['INPUT','SELECT','TEXTAREA'].includes(a.tagName); }
+
+async function init() {
+  try {
+    const r = await fetch('/api/state', { cache:'no-store' });
+    if (!r.ok) throw 0;
+    const s = await r.json();
+    apiAvailable = true;
+    applyServer(s);
+  } catch(e) {
+    apiAvailable = false;
+    state = loadLocal() || { people: [], groups: [], payments: [] };
+  }
+  render();
+  if (apiAvailable) {
+    setInterval(async () => {
+      if (saving || isEditing()) return;
+      try {
+        const r = await fetch('/api/state', { cache:'no-store' });
+        if (!r.ok) return;
+        const s = await r.json();
+        if ((s.rev||0) !== localRev) { applyServer(s); render(); }
+      } catch(e) {}
+    }, 6000);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
