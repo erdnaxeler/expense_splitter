@@ -12,7 +12,7 @@ groups with **weights**, log expenses and payments, and it works out who owes wh
 
 Each group is split by *shares*. A normal person has weight **1**. A couple who
 share one wallet but are two people can be added as a single entry (e.g.
-"Alex & Verity") with weight **2** in the groups they're part of — so they pay two
+"Joe & Jane") with weight **2** in the groups they're part of — so they pay two
 people's worth while settling as one. Set any weight you like per person, per group.
 
 ---

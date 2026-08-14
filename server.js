@@ -11,7 +11,7 @@ const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, 'data.json');
 const INDEX = path.join(__dirname, 'public', 'index.html');
 
 function emptyState() {
-  return { people: [], groups: [], payments: [], rev: 0, updatedAt: 0 };
+  return { people: [], expenses: [], payments: [], rev: 0, updatedAt: 0 };
 }
 
 function readState() {
@@ -56,7 +56,7 @@ const server = http.createServer((req, res) => {
       const cur = readState();
       const next = {
         people: incoming.people,
-        groups: Array.isArray(incoming.groups) ? incoming.groups : [],
+        expenses: Array.isArray(incoming.expenses) ? incoming.expenses : [],
         payments: Array.isArray(incoming.payments) ? incoming.payments : [],
         rev: (cur.rev || 0) + 1,
         updatedAt: Date.now()
